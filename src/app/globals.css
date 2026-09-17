@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f9fc;
+  --foreground: #0c2d48;
+  --card: #ffffff;
+  --accent: #0891b2;
+  --accent-dark: #0e7490;
+  --accent-soft: #e0f7fa;
+  --muted: #5f7d8f;
+  --border: #d4e8f0;
+  --success: #059669;
+  --success-soft: #d1fae5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-soft: var(--accent-soft);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --font-sans: var(--font-cairo);
+}
+
+body {
+  position: relative;
+  min-height: 100%;
+  background: #eef7fb;
+  color: var(--foreground);
+  font-family: var(--font-cairo), sans-serif;
+  overflow-x: hidden;
+}
+
+/* ===== خلفية الموقع ===== */
+.site-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.site-background__gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(165, 243, 252, 0.55) 0%, transparent 32%),
+    radial-gradient(circle at 85% 10%, rgba(186, 230, 253, 0.45) 0%, transparent 28%),
+    radial-gradient(circle at 50% 100%, rgba(204, 251, 241, 0.35) 0%, transparent 40%),
+    linear-gradient(180deg, #f8fdff 0%, #edf6fb 45%, #e8f4fa 100%);
+}
+
+.site-background__blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+
+.site-background__blob--1 {
+  top: -8rem;
+  right: -6rem;
+  width: 22rem;
+  height: 22rem;
+  background: #67e8f9;
+  animation: float-slow 14s ease-in-out infinite;
+}
+
+.site-background__blob--2 {
+  top: 35%;
+  left: -8rem;
+  width: 26rem;
+  height: 26rem;
+  background: #bae6fd;
+  animation: float-slow 18s ease-in-out infinite reverse;
+}
+
+.site-background__blob--3 {
+  bottom: -10rem;
+  right: 20%;
+  width: 28rem;
+  height: 28rem;
+  background: #99f6e4;
+  animation: float-slow 16s ease-in-out infinite;
+}
+
+.site-background__grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(8, 145, 178, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(8, 145, 178, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 85%);
+}
+
+.site-background__wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 180px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 180' preserveAspectRatio='none'%3E%3Cpath fill='%23d9f2fb' fill-opacity='0.7' d='M0,96L48,101.3C96,107,192,117,288,122.7C384,128,480,128,576,117.3C672,107,768,85,864,85.3C960,85,1056,107,1152,112C1248,117,1344,107,1392,101.3L1440,96L1440,180L1392,180C1344,180,1248,180,1152,180C1056,180,960,180,864,180C768,180,672,180,576,180C480,180,384,180,288,180C192,180,96,180,48,180L0,180Z'/%3E%3C/svg%3E")
+    bottom center / cover no-repeat;
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-24px) scale(1.04);
+  }
+}
+
+.dental-card {
+  border: 1px solid rgba(212, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 30px rgba(12, 45, 72, 0.06);
+}
+
+.dental-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 8px 20px rgba(8, 145, 178, 0.25);
+}
+
+.dental-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(8, 145, 178, 0.3);
+}
+
+.dental-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.dental-btn-secondary:hover {
+  background: var(--accent-soft);
+  border-color: #a5f3fc;
+}
+
+.dental-input {
+  width: 100%;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  background: rgba(251, 254, 255, 0.95);
+  padding: 0.85rem 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dental-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.12);
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(8, 145, 178, 0.12) 0%, transparent 45%),
+    linear-gradient(135deg, rgba(224, 247, 250, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(8, 145, 178, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.5;
+}
