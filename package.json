@@ -1,36 +1,15 @@
 {
-  "name": "next.wep",
-  "version": "0.1.0",
+  "name": "smile-clinic",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:studio": "prisma studio"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.16.3",
-    "next": "16.3.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "db:generate": "npm run db:generate --prefix backend",
+    "db:migrate": "npm run db:migrate --prefix backend",
+    "db:studio": "npm run db:studio --prefix backend"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
-    "prisma": "^6.16.3",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  },
-  "allowScripts": {
-    "@prisma/engines@6.16.3": true,
-    "@prisma/client@6.16.3": true,
-    "prisma@6.16.3": true
+    "concurrently": "^9.2.1"
   }
 }

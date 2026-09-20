@@ -1,0 +1,415 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { apiUrl, authHeaders } from "@/lib/api";
+import { doctors } from "@/data/doctors";
+import { dentalServices, timeSlots } from "@/data/services";
+import type { Booking, BookingStatus } from "@/lib/types";
+
+type EditForm = {
+  name: string;
+  phone: string;
+  doctorId: string;
+  serviceId: string;
+  date: string;
+  time: string;
+  status: BookingStatus;
+};
+
+const emptyForm: EditForm = {
+  name: "",
+  phone: "",
+  doctorId: "",
+  serviceId: "",
+  date: "",
+  time: "",
+  status: "confirmed",
+};
+
+export default function AdminBookings() {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const [editing, setEditing] = useState<Booking | null>(null);
+  const [form, setForm] = useState<EditForm>(emptyForm);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  async function loadBookings() {
+    try {
+      const response = await fetch(apiUrl("/api/bookings"), {
+        headers: { ...authHeaders() },
+      });
+      const data = (await response.json()) as { bookings?: Booking[]; error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "تعذر تحميل المواعيد.");
+        return;
+      }
+      setError("");
+      setBookings(data.bookings ?? []);
+    } catch {
+      setError("تعذر الاتصال بالخادم.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch(apiUrl("/api/bookings"), {
+      headers: { ...authHeaders() },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = (await response.json()) as { bookings?: Booking[]; error?: string };
+        if (!response.ok) {
+          setError(data.error ?? "تعذر تحميل المواعيد.");
+          return;
+        }
+        setBookings(data.bookings ?? []);
+      })
+      .catch((fetchError: unknown) => {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setError("تعذر الاتصال بالخادم.");
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!editing || !form.date || !form.doctorId) {
+      return;
+    }
+
+    const controller = new AbortController();
+    fetch(
+      apiUrl(
+        `/api/availability?date=${form.date}&doctorId=${form.doctorId}&excludeId=${editing.id}`,
+      ),
+      { signal: controller.signal },
+    )
+      .then((response) => response.json())
+      .then((data: { bookedTimes?: string[] }) => {
+        setBookedTimes(data.bookedTimes ?? []);
+      })
+      .catch((fetchError: unknown) => {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+          return;
+        }
+        setBookedTimes([]);
+      });
+
+    return () => controller.abort();
+  }, [editing, form.date, form.doctorId]);
+
+  const stats = useMemo(() => {
+    return {
+      total: bookings.length,
+      confirmed: bookings.filter((item) => item.status === "confirmed").length,
+      cancelled: bookings.filter((item) => item.status === "cancelled").length,
+      deleted: bookings.filter((item) => item.status === "deleted").length,
+    };
+  }, [bookings]);
+
+  function startEdit(booking: Booking) {
+    setEditing(booking);
+    setForm({
+      name: booking.name,
+      phone: booking.phone,
+      doctorId: booking.doctorId,
+      serviceId: booking.serviceId,
+      date: booking.date,
+      time: booking.time,
+      status: booking.status,
+    });
+    setError("");
+  }
+
+  async function saveEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing) {
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(apiUrl(`/api/bookings/${editing.id}`), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+        },
+        body: JSON.stringify(form),
+      });
+      const data = (await response.json()) as { booking?: Booking; error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "تعذر حفظ التعديل.");
+        return;
+      }
+      setEditing(null);
+      await loadBookings();
+    } catch {
+      setError("تعذر الاتصال بالخادم.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeBooking(id: string) {
+    const confirmed = window.confirm("هل تريد نقل هذا الحجز إلى المواعيد المحذوفة؟");
+    if (!confirmed) {
+      return;
+    }
+
+    setBusyId(id);
+    setError("");
+    try {
+      const response = await fetch(apiUrl(`/api/bookings/${id}`), {
+        method: "DELETE",
+        headers: { ...authHeaders() },
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setError(data.error ?? "تعذر حذف الموعد.");
+        return;
+      }
+      if (editing?.id === id) {
+        setEditing(null);
+      }
+      await loadBookings();
+    } catch {
+      setError("تعذر الاتصال بالخادم.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  if (loading) {
+    return <p className="text-muted">جاري تحميل المواعيد...</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="dental-card p-5">
+          <p className="text-sm text-muted">كل الحجوزات</p>
+          <p className="mt-1 text-3xl font-bold text-foreground">{stats.total}</p>
+        </div>
+        <div className="dental-card p-5">
+          <p className="text-sm text-muted">مواعيد مؤكدة</p>
+          <p className="mt-1 text-3xl font-bold text-success">{stats.confirmed}</p>
+        </div>
+        <div className="dental-card p-5">
+          <p className="text-sm text-muted">مواعيد ملغاة</p>
+          <p className="mt-1 text-3xl font-bold text-red-600">{stats.cancelled}</p>
+        </div>
+        <div className="dental-card p-5">
+          <p className="text-sm text-muted">مواعيد محذوفة</p>
+          <p className="mt-1 text-3xl font-bold text-zinc-600">{stats.deleted}</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {editing && (
+        <form onSubmit={saveEdit} className="dental-card space-y-5 p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">تعديل الحجز</h2>
+            <button type="button" onClick={() => setEditing(null)} className="text-sm text-muted">
+              إغلاق
+            </button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-semibold">اسم المريض</label>
+              <input
+                required
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                className="dental-input"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">الجوال</label>
+              <input
+                required
+                value={form.phone}
+                onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                className="dental-input"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">الطبيب</label>
+              <select
+                required
+                value={form.doctorId}
+                onChange={(event) => setForm({ ...form, doctorId: event.target.value, time: "" })}
+                className="dental-input"
+              >
+                {doctors.map((doctor) => (
+                  <option key={doctor.id} value={doctor.id}>
+                    {doctor.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">الخدمة</label>
+              <select
+                required
+                value={form.serviceId}
+                onChange={(event) => setForm({ ...form, serviceId: event.target.value })}
+                className="dental-input"
+              >
+                {dentalServices.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name} — {service.price} ر.س
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">التاريخ</label>
+              <input
+                type="date"
+                required
+                value={form.date}
+                onChange={(event) => setForm({ ...form, date: event.target.value, time: "" })}
+                className="dental-input"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">الوقت</label>
+              <select
+                required
+                value={form.time}
+                onChange={(event) => setForm({ ...form, time: event.target.value })}
+                className="dental-input"
+              >
+                {timeSlots.map((slot) => (
+                  <option key={slot} value={slot} disabled={bookedTimes.includes(slot) && slot !== form.time}>
+                    {slot}
+                    {bookedTimes.includes(slot) && slot !== form.time ? " — محجوز" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">حالة الحجز</label>
+              <select
+                value={form.status}
+                onChange={(event) =>
+                  setForm({ ...form, status: event.target.value as BookingStatus })
+                }
+                className="dental-input"
+              >
+                <option value="confirmed">مؤكد</option>
+                <option value="cancelled">ملغى</option>
+                <option value="deleted">محذوف</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" disabled={saving} className="dental-btn-primary disabled:opacity-60">
+              {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+            </button>
+            {form.status !== "deleted" && (
+              <button
+                type="button"
+                onClick={() => editing && removeBooking(editing.id)}
+                className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+              >
+                حذف الحجز
+              </button>
+            )}
+          </div>
+        </form>
+      )}
+
+      {bookings.length === 0 ? (
+        <div className="dental-card p-8 text-center text-muted">
+          لا توجد مواعيد محفوظة بعد.
+        </div>
+      ) : (
+        <div className="overflow-x-auto dental-card">
+          <table className="w-full min-w-[900px] text-right text-sm">
+            <thead className="border-b border-border bg-accent-soft/40 text-foreground">
+              <tr>
+                <th className="px-4 py-3 font-semibold">المريض</th>
+                <th className="px-4 py-3 font-semibold">الجوال</th>
+                <th className="px-4 py-3 font-semibold">الطبيب</th>
+                <th className="px-4 py-3 font-semibold">الخدمة</th>
+                <th className="px-4 py-3 font-semibold">التاريخ</th>
+                <th className="px-4 py-3 font-semibold">الوقت</th>
+                <th className="px-4 py-3 font-semibold">الحالة</th>
+                <th className="px-4 py-3 font-semibold">إجراء</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => (
+                <tr key={booking.id} className="border-b border-border last:border-b-0">
+                  <td className="px-4 py-3 font-medium text-foreground">{booking.name}</td>
+                  <td className="px-4 py-3 text-muted">{booking.phone}</td>
+                  <td className="px-4 py-3 text-muted">{booking.doctorName}</td>
+                  <td className="px-4 py-3 text-muted">{booking.serviceName}</td>
+                  <td className="px-4 py-3 text-muted">{booking.date}</td>
+                  <td className="px-4 py-3 text-muted">{booking.time}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={
+                        booking.status === "confirmed"
+                          ? "rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success"
+                          : booking.status === "deleted"
+                            ? "rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600"
+                            : "rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600"
+                      }
+                    >
+                      {booking.status === "confirmed"
+                        ? "مؤكد"
+                        : booking.status === "deleted"
+                          ? "محذوف"
+                          : "ملغى"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(booking)}
+                        className="rounded-lg border border-border px-3 py-1 text-xs font-semibold hover:bg-accent-soft"
+                      >
+                        تعديل
+                      </button>
+                      {booking.status !== "deleted" && (
+                        <button
+                          type="button"
+                          disabled={busyId === booking.id}
+                          onClick={() => removeBooking(booking.id)}
+                          className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {busyId === booking.id ? "..." : "حذف"}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
