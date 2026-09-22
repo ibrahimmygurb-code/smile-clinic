@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { apiUrl, authHeaders } from "@/lib/api";
-import { doctors } from "@/data/doctors";
 import { dentalServices, timeSlots } from "@/data/services";
 import type { Booking } from "@/lib/types";
+import { isDoctorOnLeave } from "@/lib/types";
+import DoctorChoiceList from "@/components/DoctorChoiceList";
 import { useAuth } from "@/components/AuthProvider";
+import { useDoctors } from "@/lib/useDoctors";
 
 type BookingFormProps = {
   defaultServiceId?: string;
@@ -22,6 +24,7 @@ type BookingData = {
 
 export default function BookingForm({ defaultServiceId = "" }: BookingFormProps) {
   const { user } = useAuth();
+  const { doctors, loading: doctorsLoading } = useDoctors();
   const [form, setForm] = useState<BookingData>({
     name: "",
     phone: "",
@@ -73,6 +76,12 @@ export default function BookingForm({ defaultServiceId = "" }: BookingFormProps)
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    if (!form.doctorId) {
+      setError("اختر الطبيب.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -184,29 +193,54 @@ export default function BookingForm({ defaultServiceId = "" }: BookingFormProps)
       </div>
 
       <div>
-        <label htmlFor="doctor" className="mb-2 block text-sm font-semibold text-foreground">
-          اختر الطبيب
+        <label htmlFor="date" className="mb-2 block text-sm font-semibold text-foreground">
+          التاريخ
         </label>
-        <select
-          id="doctor"
+        <input
+          id="date"
+          type="date"
           required
-          value={form.doctorId}
+          value={form.date}
+          min={new Date().toISOString().split("T")[0]}
           onChange={(event) => {
-            const doctorId = event.target.value;
-            setForm({ ...form, doctorId, time: "" });
-            if (!doctorId) {
+            const nextDate = event.target.value;
+            const selected = doctors.find((item) => item.id === form.doctorId);
+            const doctorId = selected && isDoctorOnLeave(selected, nextDate) ? "" : form.doctorId;
+            setForm({ ...form, date: nextDate, doctorId, time: "" });
+            if (!nextDate || !doctorId) {
               setBookedTimes([]);
             }
           }}
           className="dental-input"
-        >
-          <option value="">اختر الطبيب</option>
-          {doctors.map((doctor) => (
-            <option key={doctor.id} value={doctor.id}>
-              {doctor.name} — {doctor.specialty}
-            </option>
-          ))}
-        </select>
+        />
+      </div>
+
+      <div>
+        <p id="doctor" className="mb-2 block text-sm font-semibold text-foreground">
+          اختر الطبيب
+        </p>
+        {doctorsLoading ? (
+          <p className="text-sm text-muted">جاري تحميل الأطباء...</p>
+        ) : doctors.length === 0 ? (
+          <p className="text-sm text-muted">لا يوجد أطباء متاحون حالياً.</p>
+        ) : (
+          <DoctorChoiceList
+            doctors={doctors}
+            selectedId={form.doctorId}
+            date={form.date}
+            onSelect={(doctorId) => {
+              setForm({ ...form, doctorId, time: "" });
+              if (!doctorId) {
+                setBookedTimes([]);
+              }
+            }}
+          />
+        )}
+        {form.date && doctors.some((doctor) => isDoctorOnLeave(doctor, form.date)) && (
+          <p className="mt-2 text-xs text-muted">
+            الشارة البرتقالية «غير متاح» على اليسار تعني أن الطبيب في إجازة في هذا اليوم.
+          </p>
+        )}
       </div>
 
       <div>
@@ -229,32 +263,10 @@ export default function BookingForm({ defaultServiceId = "" }: BookingFormProps)
         </select>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label htmlFor="date" className="mb-2 block text-sm font-semibold text-foreground">
-            التاريخ
-          </label>
-          <input
-            id="date"
-            type="date"
-            required
-            value={form.date}
-            min={new Date().toISOString().split("T")[0]}
-            onChange={(event) => {
-              const nextDate = event.target.value;
-              setForm({ ...form, date: nextDate, time: "" });
-              if (!nextDate) {
-                setBookedTimes([]);
-              }
-            }}
-            className="dental-input"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="time" className="mb-2 block text-sm font-semibold text-foreground">
-            الوقت
-          </label>
+      <div>
+        <label htmlFor="time" className="mb-2 block text-sm font-semibold text-foreground">
+          الوقت
+        </label>
           <select
             id="time"
             required
@@ -276,7 +288,6 @@ export default function BookingForm({ defaultServiceId = "" }: BookingFormProps)
               );
             })}
           </select>
-        </div>
       </div>
 
       {(selectedDoctor || selectedService) && (

@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiUrl, authHeaders } from "@/lib/api";
-import { doctors } from "@/data/doctors";
+import DoctorChoiceList from "@/components/DoctorChoiceList";
 import { dentalServices, timeSlots } from "@/data/services";
-import type { Booking, BookingStatus } from "@/lib/types";
+import type { Booking, BookingStatus, Doctor } from "@/lib/types";
+import { isDoctorOnLeave } from "@/lib/types";
 
 type EditForm = {
   name: string;
@@ -26,8 +27,22 @@ const emptyForm: EditForm = {
   status: "confirmed",
 };
 
-export default function AdminBookings() {
+type DateSortOrder = "nearest" | "farthest";
+
+function bookingSortKey(booking: Booking) {
+  return `${booking.date}T${booking.time}`;
+}
+
+type AdminBookingsProps = {
+  doctors: Doctor[];
+  doctorsLoading?: boolean;
+};
+
+export default function AdminBookings({ doctors, doctorsLoading = false }: AdminBookingsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [dateSort, setDateSort] = useState<DateSortOrder>("nearest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
@@ -115,6 +130,34 @@ export default function AdminBookings() {
       deleted: bookings.filter((item) => item.status === "deleted").length,
     };
   }, [bookings]);
+
+  const visibleBookings = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    let list = bookings;
+
+    if (serviceFilter) {
+      list = list.filter((booking) => booking.serviceId === serviceFilter);
+    }
+
+    if (query) {
+      list = list.filter((booking) => {
+        const haystack = [
+          booking.name,
+          booking.phone,
+          booking.doctorName,
+          booking.serviceName,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    return [...list].sort((a, b) => {
+      const cmp = bookingSortKey(a).localeCompare(bookingSortKey(b));
+      return dateSort === "farthest" ? -cmp : cmp;
+    });
+  }, [bookings, searchQuery, serviceFilter, dateSort]);
 
   function startEdit(booking: Booking) {
     setEditing(booking);
@@ -249,20 +292,22 @@ export default function AdminBookings() {
                 className="dental-input"
               />
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold">الطبيب</label>
-              <select
-                required
-                value={form.doctorId}
-                onChange={(event) => setForm({ ...form, doctorId: event.target.value, time: "" })}
-                className="dental-input"
-              >
-                {doctors.map((doctor) => (
-                  <option key={doctor.id} value={doctor.id}>
-                    {doctor.name}
-                  </option>
-                ))}
-              </select>
+            <div className="md:col-span-2">
+              <p className="mb-2 block text-sm font-semibold">الطبيب</p>
+              {doctorsLoading ? (
+                <p className="text-sm text-muted">جاري تحميل الأطباء...</p>
+              ) : doctors.length === 0 ? (
+                <p className="text-sm text-muted">لا يوجد أطباء.</p>
+              ) : (
+                <DoctorChoiceList
+                  compact
+                  doctors={doctors}
+                  selectedId={form.doctorId}
+                  date={form.date}
+                  disabled={doctorsLoading}
+                  onSelect={(doctorId) => setForm({ ...form, doctorId, time: "" })}
+                />
+              )}
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold">الخدمة</label>
@@ -285,7 +330,13 @@ export default function AdminBookings() {
                 type="date"
                 required
                 value={form.date}
-                onChange={(event) => setForm({ ...form, date: event.target.value, time: "" })}
+                onChange={(event) => {
+                  const date = event.target.value;
+                  const selectedDoctor = doctors.find((item) => item.id === form.doctorId);
+                  const doctorId =
+                    selectedDoctor && isDoctorOnLeave(selectedDoctor, date) ? "" : form.doctorId;
+                  setForm({ ...form, date, doctorId, time: "" });
+                }}
                 className="dental-input"
               />
             </div>
@@ -343,6 +394,66 @@ export default function AdminBookings() {
           لا توجد مواعيد محفوظة بعد.
         </div>
       ) : (
+        <div className="space-y-4">
+          <div className="dental-card grid gap-4 p-4 md:grid-cols-[1.4fr_1fr_1fr] md:items-end">
+            <div>
+              <label htmlFor="booking-search" className="mb-2 block text-sm font-semibold text-foreground">
+                بحث في الحجوزات
+              </label>
+              <input
+                id="booking-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="اسم المريض، الجوال، الطبيب، أو الخدمة..."
+                className="dental-input"
+              />
+            </div>
+            <div>
+              <label htmlFor="booking-service-filter" className="mb-2 block text-sm font-semibold text-foreground">
+                نوع الخدمة
+              </label>
+              <select
+                id="booking-service-filter"
+                value={serviceFilter}
+                onChange={(event) => setServiceFilter(event.target.value)}
+                className="dental-input"
+              >
+                <option value="">كل الخدمات</option>
+                {dentalServices.map((service) => (
+                  <option key={service.id} value={service.id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="booking-date-sort" className="mb-2 block text-sm font-semibold text-foreground">
+                ترتيب حسب التاريخ
+              </label>
+              <select
+                id="booking-date-sort"
+                value={dateSort}
+                onChange={(event) => setDateSort(event.target.value as DateSortOrder)}
+                className="dental-input"
+              >
+                <option value="nearest">من الأقرب إلى الأبعد</option>
+                <option value="farthest">من الأبعد إلى الأقرب</option>
+              </select>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted">
+            {visibleBookings.length === bookings.length
+              ? `عرض ${bookings.length} حجز`
+              : `عرض ${visibleBookings.length} من ${bookings.length} حجز`}
+          </p>
+
+          {visibleBookings.length === 0 ? (
+            <div className="dental-card p-8 text-center text-muted">
+              لا توجد نتائج مطابقة للبحث.
+            </div>
+          ) : (
         <div className="overflow-x-auto dental-card">
           <table className="w-full min-w-[900px] text-right text-sm">
             <thead className="border-b border-border bg-accent-soft/40 text-foreground">
@@ -358,7 +469,7 @@ export default function AdminBookings() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map((booking) => (
+              {visibleBookings.map((booking) => (
                 <tr key={booking.id} className="border-b border-border last:border-b-0">
                   <td className="px-4 py-3 font-medium text-foreground">{booking.name}</td>
                   <td className="px-4 py-3 text-muted">{booking.phone}</td>
@@ -408,6 +519,8 @@ export default function AdminBookings() {
               ))}
             </tbody>
           </table>
+        </div>
+          )}
         </div>
       )}
     </div>

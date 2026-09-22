@@ -29,6 +29,16 @@ model User {
   @@map("users")
 }
 
+model Doctor {
+  id        String   @id
+  name      String
+  specialty String
+  offDates  String[] @default([])
+  createdAt DateTime @default(now())
+
+  @@map("doctors")
+}
+
 model Booking {
   id          String        @id @default(uuid()) @db.Uuid
   name        String

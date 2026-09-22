@@ -1,4 +1,3 @@
-import { doctors } from "../data/doctors";
 import { dentalServices, timeSlots } from "../data/services";
 import type { CreateBookingInput, UpdateBookingInput } from "./types";
 
@@ -46,9 +45,8 @@ export function validateBookingInput(
     return { ok: false, error: "أدخل رقم جوال سعودي بصيغة 05xxxxxxxx." };
   }
 
-  const doctor = doctors.find((item) => item.id === doctorId);
-  if (!doctor) {
-    return { ok: false, error: "الطبيب المختار غير موجود." };
+  if (!doctorId) {
+    return { ok: false, error: "اختر الطبيب." };
   }
 
   const service = dentalServices.find((item) => item.id === serviceId);

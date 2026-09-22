@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { seedAdminUser } from "./lib/auth";
+import { seedDoctors } from "./lib/doctors-store";
 import { authRouter } from "./routes/auth";
 import { apiRouter } from "./routes/api";
 
@@ -20,9 +21,10 @@ app.use("/api", apiRouter);
 
 app.listen(port, async () => {
   try {
+    await seedDoctors();
     await seedAdminUser();
   } catch (error) {
-    console.error("Could not seed admin user:", error);
+    console.error("Could not seed initial data:", error);
   }
   console.log(`Backend running on http://localhost:${port}`);
 });

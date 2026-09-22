@@ -1,6 +1,12 @@
 import { Router } from "express";
-import { doctors } from "../data/doctors";
 import { dentalServices } from "../data/services";
+import {
+  createDoctor,
+  deleteDoctor,
+  listDoctors,
+  updateDoctor,
+  validateDoctorInput,
+} from "../lib/doctors-store";
 import {
   createBooking,
   deleteBooking,
@@ -39,8 +45,61 @@ apiRouter.get("/services", (_req, res) => {
   res.json({ services: dentalServices });
 });
 
-apiRouter.get("/doctors", (_req, res) => {
-  res.json({ doctors });
+apiRouter.get("/doctors", async (_req, res) => {
+  try {
+    const doctors = await listDoctors();
+    res.json({ doctors });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.post("/doctors", requireAuth, requireAdmin, async (req, res) => {
+  const validation = validateDoctorInput(req.body);
+  if (!validation.ok) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  try {
+    const result = await createDoctor(validation.data);
+    res.status(201).json({ doctor: result.doctor });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.put("/doctors/:id", requireAuth, requireAdmin, async (req, res) => {
+  const validation = validateDoctorInput(req.body);
+  if (!validation.ok) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  try {
+    const result = await updateDoctor(String(req.params.id), validation.data);
+    if (!result.ok) {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+    res.json({ doctor: result.doctor });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.delete("/doctors/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const result = await deleteDoctor(String(req.params.id));
+    if (!result.ok) {
+      const status = result.error.includes("غير موجود") ? 404 : 409;
+      res.status(status).json({ error: result.error });
+      return;
+    }
+    res.json({ ok: true });
+  } catch {
+    databaseError(res);
+  }
 });
 
 apiRouter.get("/availability", requireAuth, async (req, res) => {

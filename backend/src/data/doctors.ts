@@ -4,7 +4,7 @@ export type Doctor = {
   specialty: string;
 };
 
-export const doctors: Doctor[] = [
+export const defaultDoctors: Doctor[] = [
   {
     id: "dr-ahmed",
     name: "د. أحمد العتيبي",

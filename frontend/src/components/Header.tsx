@@ -12,6 +12,8 @@ const publicNavLinks = [
 const adminNavLinks = [
   { href: "/book", label: "حجز موعد" },
   { href: "/admin", label: "لوحة الإدارة" },
+  { href: "/admin/doctors", label: "إدارة الأطباء" },
+  { href: "/admin/leaves", label: "إدارة الإجازات" },
 ];
 
 export default function Header() {

@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { doctors } from "../data/doctors";
+import { getDoctorById, isDoctorOnLeave } from "./doctors-store";
 import { dentalServices } from "../data/services";
 import { prisma } from "./prisma";
 import type { Booking, BookingStatus, CreateBookingInput, UpdateBookingInput } from "./types";
@@ -71,9 +71,16 @@ export async function createBooking(input: CreateBookingInput) {
     return { ok: false as const, error: "الخدمة المختارة غير موجودة." };
   }
 
-  const doctor = doctors.find((item) => item.id === input.doctorId);
+  const doctor = await getDoctorById(input.doctorId);
   if (!doctor) {
     return { ok: false as const, error: "الطبيب المختار غير موجود." };
+  }
+
+  if (isDoctorOnLeave(doctor, input.date)) {
+    return {
+      ok: false as const,
+      error: `${doctor.name} في إجازة في هذا اليوم. اختر طبيباً أو تاريخاً آخر.`,
+    };
   }
 
   try {
@@ -116,9 +123,16 @@ export async function updateBooking(id: string, input: UpdateBookingInput) {
     return { ok: false as const, error: "الخدمة المختارة غير موجودة." };
   }
 
-  const doctor = doctors.find((item) => item.id === input.doctorId);
+  const doctor = await getDoctorById(input.doctorId);
   if (!doctor) {
     return { ok: false as const, error: "الطبيب المختار غير موجود." };
+  }
+
+  if (input.status === "confirmed" && isDoctorOnLeave(doctor, input.date)) {
+    return {
+      ok: false as const,
+      error: `${doctor.name} في إجازة في هذا اليوم. اختر طبيباً أو تاريخاً آخر.`,
+    };
   }
 
   try {

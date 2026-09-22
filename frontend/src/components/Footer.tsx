@@ -34,6 +34,16 @@ export default function Footer() {
                     لوحة الإدارة
                   </Link>
                 </li>
+                <li>
+                  <Link href="/admin/doctors" className="hover:text-accent">
+                    إدارة الأطباء
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/admin/leaves" className="hover:text-accent">
+                    إدارة الإجازات
+                  </Link>
+                </li>
               </>
             ) : (
               <>
