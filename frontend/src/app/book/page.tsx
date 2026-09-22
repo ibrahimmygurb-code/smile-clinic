@@ -26,15 +26,6 @@ export default async function BookPage({ searchParams }: BookPageProps) {
         </Suspense>
 
         <aside className="space-y-4">
-          <div className="dental-card p-6">
-            <h2 className="text-lg font-bold text-foreground">ماذا يحدث بعد الحجز؟</h2>
-            <ol className="mt-4 space-y-3 text-sm leading-7 text-muted">
-              <li>1. تسجّل الدخول بحسابك</li>
-              <li>2. تختار الطبيب والخدمة والوقت</li>
-              <li>3. يُحفظ الموعد ويظهر في لوحة العيادة</li>
-            </ol>
-          </div>
-
           <div className="dental-card bg-accent-soft/40 p-6">
             <h2 className="text-lg font-bold text-foreground">نصائح قبل الزيارة</h2>
             <ul className="mt-4 space-y-2 text-sm leading-7 text-muted">

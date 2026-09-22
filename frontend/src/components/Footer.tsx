@@ -63,8 +63,8 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" className="hover:text-accent">
-                    تسجيل الدخول
+                  <Link href="/appointments" className="hover:text-accent">
+                    مواعيدي
                   </Link>
                 </li>
               </>

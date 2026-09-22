@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { normalizePhone } from "./auth-utils";
 import { getDoctorById, isDoctorOnLeave } from "./doctors-store";
 import { getServiceById } from "./services-store";
 import { prisma } from "./prisma";
@@ -45,6 +46,16 @@ export async function listBookings() {
     orderBy: [{ date: "desc" }, { time: "desc" }],
   });
   return bookings.map(toBooking);
+}
+
+export async function listBookingsForPhone(phone: string) {
+  const normalized = normalizePhone(phone);
+  const bookings = await prisma.booking.findMany({
+    where: { status: { not: "deleted" } },
+    orderBy: [{ date: "desc" }, { time: "desc" }],
+  });
+
+  return bookings.filter((row) => normalizePhone(row.phone) === normalized).map(toBooking);
 }
 
 export async function getBookingById(id: string) {

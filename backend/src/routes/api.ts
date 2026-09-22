@@ -19,11 +19,12 @@ import {
   getBookedTimes,
   getBookingById,
   listBookings,
+  listBookingsForPhone,
   updateBooking,
 } from "../lib/bookings-store";
 import { prisma } from "../lib/prisma";
 import { validateBookingInput, validateBookingUpdate } from "../lib/validation";
-import { requireAdmin, requireAuth } from "../middleware/auth";
+import { requireAdmin, requireAuth, type AuthedRequest } from "../middleware/auth";
 
 export const apiRouter = Router();
 
@@ -179,6 +180,21 @@ apiRouter.get("/availability", requireAuth, async (req, res) => {
   try {
     const bookedTimes = await getBookedTimes(date, doctorId, excludeId || undefined);
     res.json({ date, doctorId, bookedTimes });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.get("/my-bookings", requireAuth, async (req: AuthedRequest, res) => {
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ error: "يلزم تسجيل الدخول." });
+    return;
+  }
+
+  try {
+    const bookings = await listBookingsForPhone(user.phone);
+    res.json({ bookings });
   } catch {
     databaseError(res);
   }

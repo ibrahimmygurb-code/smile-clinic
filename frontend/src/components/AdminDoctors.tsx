@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AdminFormModal from "@/components/AdminFormModal";
 import { apiUrl, authHeaders } from "@/lib/api";
+import { arabicSearchMatchAny } from "@/lib/search-text";
 import type { Doctor } from "@/lib/types";
 
 type AdminDoctorsProps = {
@@ -31,6 +32,17 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const visibleDoctors = useMemo(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      return doctors;
+    }
+    return doctors.filter((doctor) =>
+      arabicSearchMatchAny([doctor.name, doctor.specialty], query),
+    );
+  }, [doctors, searchQuery]);
 
   function startAdd() {
     setEditingId("");
@@ -183,6 +195,24 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
       ) : doctors.length === 0 ? (
         <div className="dental-card p-6 text-center text-muted">لا يوجد أطباء مسجلون بعد. اضغط «إضافة طبيب» للبدء.</div>
       ) : (
+        <div className="space-y-4">
+          <div className="dental-card p-4">
+            <label htmlFor="doctor-search" className="mb-2 block text-sm font-semibold text-foreground">
+              بحث عن طبيب
+            </label>
+            <input
+              id="doctor-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="الاسم أو التخصص — مثال: احمد أو تقويم"
+              className="dental-input"
+            />
+          </div>
+
+          {visibleDoctors.length === 0 ? (
+            <div className="dental-card p-6 text-center text-muted">لا توجد نتائج مطابقة للبحث.</div>
+          ) : (
         <div className="overflow-x-auto dental-card">
           <table className="w-full min-w-[520px] text-right text-sm">
             <thead className="border-b border-border bg-accent-soft/40 text-foreground">
@@ -193,7 +223,7 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
               </tr>
             </thead>
             <tbody>
-              {doctors.map((doctor) => (
+              {visibleDoctors.map((doctor) => (
                 <tr
                   key={doctor.id}
                   className={`border-b border-border last:border-b-0 ${editingId === doctor.id ? "bg-accent-soft/60" : ""}`}
@@ -224,6 +254,8 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
               ))}
             </tbody>
           </table>
+        </div>
+          )}
         </div>
       )}
     </div>

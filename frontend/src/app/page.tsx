@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import ServiceCard from "@/components/ServiceCard";
+import UpcomingAppointmentCard from "@/components/UpcomingAppointmentCard";
 import { clinicStats, whyUs } from "@/data/services";
 import { useServices } from "@/lib/useServices";
 
@@ -37,11 +38,7 @@ export default function Home() {
 
           <div className="hero-panel relative min-h-64 p-8 md:min-h-full">
             <div className="relative space-y-4">
-              <div className="dental-card p-5">
-                <p className="text-sm text-muted">موعدك القادم</p>
-                <p className="mt-1 text-lg font-bold text-foreground">فحص دوري + تنظيف</p>
-                <p className="mt-2 text-sm text-accent">الأحد — 10:30 ص</p>
-              </div>
+              <UpcomingAppointmentCard />
               <div className="dental-card p-5">
                 <p className="text-sm text-muted">تقييم المرضى</p>
                 <p className="mt-1 text-2xl font-bold text-accent">4.9 / 5</p>

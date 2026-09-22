@@ -7,6 +7,7 @@ const publicNavLinks = [
   { href: "/", label: "الرئيسية" },
   { href: "/services", label: "الخدمات" },
   { href: "/book", label: "حجز موعد" },
+  { href: "/appointments", label: "مواعيدي" },
 ];
 
 const adminNavLinks = [

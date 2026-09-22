@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminFormModal from "@/components/AdminFormModal";
 import { apiUrl, authHeaders } from "@/lib/api";
+import { arabicSearchMatchAny } from "@/lib/search-text";
 import DoctorChoiceList from "@/components/DoctorChoiceList";
 import { timeSlots } from "@/data/services";
 import type { Booking, BookingStatus, Doctor, Service } from "@/lib/types";
@@ -50,6 +51,7 @@ export default function AdminBookings({
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
+  const [doctorFilter, setDoctorFilter] = useState("");
   const [dateSort, setDateSort] = useState<DateSortOrder>("nearest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -139,33 +141,57 @@ export default function AdminBookings({
     };
   }, [bookings]);
 
+  const doctorBookingCounts = useMemo(() => {
+    const byDoctor = new Map<string, { name: string; total: number; confirmed: number }>();
+
+    for (const doctor of doctors) {
+      byDoctor.set(doctor.id, { name: doctor.name, total: 0, confirmed: 0 });
+    }
+
+    for (const booking of bookings) {
+      const current = byDoctor.get(booking.doctorId) ?? {
+        name: booking.doctorName,
+        total: 0,
+        confirmed: 0,
+      };
+      current.total += 1;
+      if (booking.status === "confirmed") {
+        current.confirmed += 1;
+      }
+      byDoctor.set(booking.doctorId, current);
+    }
+
+    return [...byDoctor.entries()]
+      .map(([id, counts]) => ({ id, ...counts }))
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "ar"));
+  }, [bookings, doctors]);
+
   const visibleBookings = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim();
     let list = bookings;
 
     if (serviceFilter) {
       list = list.filter((booking) => booking.serviceId === serviceFilter);
     }
 
+    if (doctorFilter) {
+      list = list.filter((booking) => booking.doctorId === doctorFilter);
+    }
+
     if (query) {
-      list = list.filter((booking) => {
-        const haystack = [
-          booking.name,
-          booking.phone,
-          booking.doctorName,
-          booking.serviceName,
-        ]
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(query);
-      });
+      list = list.filter((booking) =>
+        arabicSearchMatchAny(
+          [booking.name, booking.phone, booking.doctorName, booking.serviceName],
+          query,
+        ),
+      );
     }
 
     return [...list].sort((a, b) => {
       const cmp = bookingSortKey(a).localeCompare(bookingSortKey(b));
       return dateSort === "farthest" ? -cmp : cmp;
     });
-  }, [bookings, searchQuery, serviceFilter, dateSort]);
+  }, [bookings, searchQuery, serviceFilter, doctorFilter, dateSort]);
 
   function startEdit(booking: Booking) {
     setEditing(booking);
@@ -270,6 +296,45 @@ export default function AdminBookings({
           <p className="mt-1 text-3xl font-bold text-zinc-600">{stats.deleted}</p>
         </div>
       </div>
+
+      {doctorBookingCounts.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-foreground">حجوزات كل طبيب</h3>
+            {doctorFilter && (
+              <button
+                type="button"
+                onClick={() => setDoctorFilter("")}
+                className="text-xs font-semibold text-accent hover:underline"
+              >
+                إظهار كل الأطباء
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {doctorBookingCounts.map((doctor) => {
+              const selected = doctorFilter === doctor.id;
+              return (
+                <button
+                  key={doctor.id}
+                  type="button"
+                  onClick={() => setDoctorFilter(selected ? "" : doctor.id)}
+                  className={`dental-card min-w-[11rem] shrink-0 p-4 text-right transition ${
+                    selected ? "ring-2 ring-accent" : "hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  <p className="truncate text-sm font-bold text-foreground">{doctor.name}</p>
+                  <p className="mt-2 text-2xl font-bold text-accent">{doctor.total}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {doctor.confirmed} مؤكد
+                    {doctor.total - doctor.confirmed > 0 ? ` · ${doctor.total - doctor.confirmed} أخرى` : ""}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {error && !editing && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -414,7 +479,7 @@ export default function AdminBookings({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="dental-card grid gap-4 p-4 md:grid-cols-[1.4fr_1fr_1fr] md:items-end">
+          <div className="dental-card grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-4 md:items-end">
             <div>
               <label htmlFor="booking-search" className="mb-2 block text-sm font-semibold text-foreground">
                 بحث في الحجوزات
@@ -427,6 +492,25 @@ export default function AdminBookings({
                 placeholder="اسم المريض، الجوال، الطبيب، أو الخدمة..."
                 className="dental-input"
               />
+            </div>
+            <div>
+              <label htmlFor="booking-doctor-filter" className="mb-2 block text-sm font-semibold text-foreground">
+                الطبيب
+              </label>
+              <select
+                id="booking-doctor-filter"
+                value={doctorFilter}
+                disabled={doctorsLoading}
+                onChange={(event) => setDoctorFilter(event.target.value)}
+                className="dental-input disabled:opacity-60"
+              >
+                <option value="">كل الأطباء</option>
+                {doctorBookingCounts.map((doctor) => (
+                  <option key={doctor.id} value={doctor.id}>
+                    {doctor.name} ({doctor.total})
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="booking-service-filter" className="mb-2 block text-sm font-semibold text-foreground">
