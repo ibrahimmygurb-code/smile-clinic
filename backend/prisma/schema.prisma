@@ -39,6 +39,18 @@ model Doctor {
   @@map("doctors")
 }
 
+model Service {
+  id          String   @id
+  name        String
+  description String
+  duration    Int
+  price       Int
+  icon        String   @default("🦷")
+  createdAt   DateTime @default(now())
+
+  @@map("services")
+}
+
 model Booking {
   id          String        @id @default(uuid()) @db.Uuid
   name        String

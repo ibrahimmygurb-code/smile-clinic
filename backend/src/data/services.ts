@@ -7,7 +7,7 @@ export type Service = {
   icon: string;
 };
 
-export const dentalServices: Service[] = [
+export const defaultServices: Service[] = [
   {
     id: "checkup",
     name: "فحص دوري",

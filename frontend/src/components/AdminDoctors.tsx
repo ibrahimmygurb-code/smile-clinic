@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AdminFormModal from "@/components/AdminFormModal";
 import { apiUrl, authHeaders } from "@/lib/api";
 import type { Doctor } from "@/lib/types";
 
@@ -29,6 +30,14 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+
+  function startAdd() {
+    setEditingId("");
+    setForm(emptyForm);
+    setFormError("");
+    setFormOpen(true);
+  }
 
   function startEdit(doctor: Doctor) {
     setEditingId(doctor.id);
@@ -38,9 +47,11 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
       offDates: [...doctor.offDates],
     });
     setFormError("");
+    setFormOpen(true);
   }
 
-  function cancelEdit() {
+  function closeForm() {
+    setFormOpen(false);
     setEditingId("");
     setForm(emptyForm);
     setFormError("");
@@ -69,7 +80,7 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
         setFormError(data.error ?? (editingId ? "تعذر حفظ التعديل." : "تعذر إضافة الطبيب."));
         return;
       }
-      cancelEdit();
+      closeForm();
       onChanged();
     } catch {
       setFormError("تعذر الاتصال بالخادم.");
@@ -97,7 +108,7 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
         return;
       }
       if (editingId === doctor.id) {
-        cancelEdit();
+        closeForm();
       }
       onChanged();
     } catch {
@@ -109,22 +120,26 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
 
   return (
     <div className="space-y-4">
-      <div className="dental-card p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-foreground">
-              {editingId ? "تعديل الطبيب" : "إضافة طبيب"}
-            </h2>
-            <p className="mt-1 text-sm text-muted">أدخل الاسم والتخصص، ثم احفظ أو عدّل أو احذف الطبيب.</p>
-          </div>
-          {editingId && (
-            <button type="button" onClick={cancelEdit} className="text-sm text-muted">
-              إلغاء التعديل
-            </button>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">اضغط إضافة لإدخال طبيب جديد، أو تعديل لفتح بياناته.</p>
+        <button type="button" onClick={startAdd} className="dental-btn-primary">
+          إضافة طبيب
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+      {error && !formOpen && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <AdminFormModal
+        open={formOpen}
+        title={editingId ? "تعديل الطبيب" : "إضافة طبيب"}
+        description="أدخل الاسم والتخصص، ثم احفظ."
+        onClose={closeForm}
+      >
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
           <div>
             <label htmlFor="doctor-name" className="mb-2 block text-sm font-semibold">
               اسم الطبيب
@@ -161,12 +176,12 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
             {formError || error}
           </div>
         )}
-      </div>
+      </AdminFormModal>
 
       {loading ? (
         <p className="text-muted">جاري تحميل الأطباء...</p>
       ) : doctors.length === 0 ? (
-        <div className="dental-card p-6 text-center text-muted">لا يوجد أطباء مسجلون بعد.</div>
+        <div className="dental-card p-6 text-center text-muted">لا يوجد أطباء مسجلون بعد. اضغط «إضافة طبيب» للبدء.</div>
       ) : (
         <div className="overflow-x-auto dental-card">
           <table className="w-full min-w-[520px] text-right text-sm">
@@ -179,15 +194,19 @@ export default function AdminDoctors({ doctors, loading, error, onChanged }: Adm
             </thead>
             <tbody>
               {doctors.map((doctor) => (
-                <tr key={doctor.id} className="border-b border-border last:border-b-0">
+                <tr
+                  key={doctor.id}
+                  className={`border-b border-border last:border-b-0 ${editingId === doctor.id ? "bg-accent-soft/60" : ""}`}
+                >
                   <td className="px-4 py-3 font-medium text-foreground">{doctor.name}</td>
                   <td className="px-4 py-3 text-muted">{doctor.specialty}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <button
                         type="button"
+                        aria-pressed={editingId === doctor.id}
                         onClick={() => startEdit(doctor)}
-                        className="rounded-lg border border-border px-3 py-1 text-xs font-semibold hover:bg-accent-soft"
+                        className="dental-btn-edit"
                       >
                         تعديل
                       </button>

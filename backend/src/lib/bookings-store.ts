@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { getDoctorById, isDoctorOnLeave } from "./doctors-store";
-import { dentalServices } from "../data/services";
+import { getServiceById } from "./services-store";
 import { prisma } from "./prisma";
 import type { Booking, BookingStatus, CreateBookingInput, UpdateBookingInput } from "./types";
 
@@ -66,7 +66,7 @@ export async function getBookedTimes(date: string, doctorId: string, excludeId?:
 }
 
 export async function createBooking(input: CreateBookingInput) {
-  const service = dentalServices.find((item) => item.id === input.serviceId);
+  const service = await getServiceById(input.serviceId);
   if (!service) {
     return { ok: false as const, error: "الخدمة المختارة غير موجودة." };
   }
@@ -118,7 +118,7 @@ export async function updateBooking(id: string, input: UpdateBookingInput) {
     return { ok: false as const, error: "الموعد غير موجود." };
   }
 
-  const service = dentalServices.find((item) => item.id === input.serviceId);
+  const service = await getServiceById(input.serviceId);
   if (!service) {
     return { ok: false as const, error: "الخدمة المختارة غير موجودة." };
   }

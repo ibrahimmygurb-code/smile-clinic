@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import AdminFormModal from "@/components/AdminFormModal";
 import { apiUrl, authHeaders } from "@/lib/api";
 import DoctorChoiceList from "@/components/DoctorChoiceList";
-import { dentalServices, timeSlots } from "@/data/services";
-import type { Booking, BookingStatus, Doctor } from "@/lib/types";
+import { timeSlots } from "@/data/services";
+import type { Booking, BookingStatus, Doctor, Service } from "@/lib/types";
 import { isDoctorOnLeave } from "@/lib/types";
 
 type EditForm = {
@@ -36,9 +37,16 @@ function bookingSortKey(booking: Booking) {
 type AdminBookingsProps = {
   doctors: Doctor[];
   doctorsLoading?: boolean;
+  services: Service[];
+  servicesLoading?: boolean;
 };
 
-export default function AdminBookings({ doctors, doctorsLoading = false }: AdminBookingsProps) {
+export default function AdminBookings({
+  doctors,
+  doctorsLoading = false,
+  services,
+  servicesLoading = false,
+}: AdminBookingsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
@@ -173,6 +181,11 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
     setError("");
   }
 
+  function closeForm() {
+    setEditing(null);
+    setForm(emptyForm);
+  }
+
   async function saveEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editing) {
@@ -195,7 +208,7 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
         setError(data.error ?? "تعذر حفظ التعديل.");
         return;
       }
-      setEditing(null);
+      closeForm();
       await loadBookings();
     } catch {
       setError("تعذر الاتصال بالخادم.");
@@ -223,7 +236,7 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
         return;
       }
       if (editing?.id === id) {
-        setEditing(null);
+        closeForm();
       }
       await loadBookings();
     } catch {
@@ -258,21 +271,20 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
         </div>
       </div>
 
-      {error && (
+      {error && !editing && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {editing && (
-        <form onSubmit={saveEdit} className="dental-card space-y-5 p-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold">تعديل الحجز</h2>
-            <button type="button" onClick={() => setEditing(null)} className="text-sm text-muted">
-              إغلاق
-            </button>
-          </div>
-
+      <AdminFormModal
+        open={Boolean(editing)}
+        wide
+        title="تعديل الحجز"
+        description="عدّل بيانات الموعد ثم احفظ."
+        onClose={closeForm}
+      >
+        <form onSubmit={saveEdit} className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold">اسم المريض</label>
@@ -314,10 +326,12 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
               <select
                 required
                 value={form.serviceId}
+                disabled={servicesLoading || services.length === 0}
                 onChange={(event) => setForm({ ...form, serviceId: event.target.value })}
-                className="dental-input"
+                className="dental-input disabled:opacity-60"
               >
-                {dentalServices.map((service) => (
+                {services.length === 0 && <option value="">لا توجد خدمات</option>}
+                {services.map((service) => (
                   <option key={service.id} value={service.id}>
                     {service.name} — {service.price} ر.س
                   </option>
@@ -387,7 +401,12 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
             )}
           </div>
         </form>
-      )}
+        {error && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+      </AdminFormModal>
 
       {bookings.length === 0 ? (
         <div className="dental-card p-8 text-center text-muted">
@@ -420,7 +439,7 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
                 className="dental-input"
               >
                 <option value="">كل الخدمات</option>
-                {dentalServices.map((service) => (
+                {services.map((service) => (
                   <option key={service.id} value={service.id}>
                     {service.name}
                   </option>
@@ -470,7 +489,10 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
             </thead>
             <tbody>
               {visibleBookings.map((booking) => (
-                <tr key={booking.id} className="border-b border-border last:border-b-0">
+                <tr
+                  key={booking.id}
+                  className={`border-b border-border last:border-b-0 ${editing?.id === booking.id ? "bg-accent-soft/60" : ""}`}
+                >
                   <td className="px-4 py-3 font-medium text-foreground">{booking.name}</td>
                   <td className="px-4 py-3 text-muted">{booking.phone}</td>
                   <td className="px-4 py-3 text-muted">{booking.doctorName}</td>
@@ -498,8 +520,9 @@ export default function AdminBookings({ doctors, doctorsLoading = false }: Admin
                     <div className="flex gap-2">
                       <button
                         type="button"
+                        aria-pressed={editing?.id === booking.id}
                         onClick={() => startEdit(booking)}
-                        className="rounded-lg border border-border px-3 py-1 text-xs font-semibold hover:bg-accent-soft"
+                        className="dental-btn-edit"
                       >
                         تعديل
                       </button>

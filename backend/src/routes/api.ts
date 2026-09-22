@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { dentalServices } from "../data/services";
 import {
   createDoctor,
   deleteDoctor,
@@ -7,6 +6,13 @@ import {
   updateDoctor,
   validateDoctorInput,
 } from "../lib/doctors-store";
+import {
+  createService,
+  deleteService,
+  listServices,
+  updateService,
+  validateServiceInput,
+} from "../lib/services-store";
 import {
   createBooking,
   deleteBooking,
@@ -41,8 +47,61 @@ apiRouter.get("/health", async (_req, res) => {
   }
 });
 
-apiRouter.get("/services", (_req, res) => {
-  res.json({ services: dentalServices });
+apiRouter.get("/services", async (_req, res) => {
+  try {
+    const services = await listServices();
+    res.json({ services });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.post("/services", requireAuth, requireAdmin, async (req, res) => {
+  const validation = validateServiceInput(req.body);
+  if (!validation.ok) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  try {
+    const result = await createService(validation.data);
+    res.status(201).json({ service: result.service });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.put("/services/:id", requireAuth, requireAdmin, async (req, res) => {
+  const validation = validateServiceInput(req.body);
+  if (!validation.ok) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  try {
+    const result = await updateService(String(req.params.id), validation.data);
+    if (!result.ok) {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+    res.json({ service: result.service });
+  } catch {
+    databaseError(res);
+  }
+});
+
+apiRouter.delete("/services/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const result = await deleteService(String(req.params.id));
+    if (!result.ok) {
+      const status = result.error.includes("غير موجود") ? 404 : 409;
+      res.status(status).json({ error: result.error });
+      return;
+    }
+    res.json({ ok: true });
+  } catch {
+    databaseError(res);
+  }
 });
 
 apiRouter.get("/doctors", async (_req, res) => {

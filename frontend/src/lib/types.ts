@@ -11,6 +11,15 @@ export function isDoctorOnLeave(doctor: Doctor, date: string) {
   return Boolean(date && doctor.offDates.includes(date));
 }
 
+export type Service = {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  price: number;
+  icon: string;
+};
+
 export type Booking = {
   id: string;
   name: string;

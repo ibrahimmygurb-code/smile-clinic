@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { Service } from "@/data/services";
+import { ServiceIcon } from "@/lib/service-icons";
+import type { Service } from "@/lib/types";
 
 type ServiceCardProps = {
   service: Service;
@@ -9,9 +10,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
   return (
     <article className="dental-card group flex h-full flex-col p-6 transition hover:-translate-y-1 hover:shadow-xl">
       <div className="flex items-start justify-between gap-3">
-        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft text-xl">
-          {service.icon}
-        </span>
+        <ServiceIcon icon={service.icon} size="lg" />
         <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
           {service.duration} دقيقة
         </span>

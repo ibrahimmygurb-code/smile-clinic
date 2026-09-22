@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import ServiceCard from "@/components/ServiceCard";
-import { clinicStats, dentalServices, whyUs } from "@/data/services";
+import { clinicStats, whyUs } from "@/data/services";
+import { useServices } from "@/lib/useServices";
 
 export default function Home() {
-  const featuredServices = dentalServices.slice(0, 3);
+  const { services, loading } = useServices();
+  const featuredServices = services.slice(0, 3);
 
   return (
     <div className="space-y-16">
@@ -87,11 +91,17 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
-          {featuredServices.map((service) => (
-            <ServiceCard key={service.id} service={service} />
-          ))}
-        </div>
+        {loading ? (
+          <p className="text-muted">جاري تحميل الخدمات...</p>
+        ) : featuredServices.length === 0 ? (
+          <div className="dental-card p-6 text-center text-muted">لا توجد خدمات معروضة حالياً.</div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-3">
+            {featuredServices.map((service) => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="dental-card grid gap-6 bg-gradient-to-l from-accent-soft/60 to-white p-8 md:grid-cols-2">

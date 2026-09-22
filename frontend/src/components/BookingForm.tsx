@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { apiUrl, authHeaders } from "@/lib/api";
-import { dentalServices, timeSlots } from "@/data/services";
+import { timeSlots } from "@/data/services";
 import type { Booking } from "@/lib/types";
 import { isDoctorOnLeave } from "@/lib/types";
 import DoctorChoiceList from "@/components/DoctorChoiceList";
 import { useAuth } from "@/components/AuthProvider";
 import { useDoctors } from "@/lib/useDoctors";
+import { useServices } from "@/lib/useServices";
 
 type BookingFormProps = {
   defaultServiceId?: string;
@@ -25,6 +26,7 @@ type BookingData = {
 export default function BookingForm({ defaultServiceId = "" }: BookingFormProps) {
   const { user } = useAuth();
   const { doctors, loading: doctorsLoading } = useDoctors();
+  const { services, loading: servicesLoading } = useServices();
   const [form, setForm] = useState<BookingData>({
     name: "",
     phone: "",
@@ -39,7 +41,7 @@ export default function BookingForm({ defaultServiceId = "" }: BookingFormProps)
   const [loading, setLoading] = useState(false);
   const phoneValue = form.phone || user?.phone || "";
 
-  const selectedService = dentalServices.find((service) => service.id === form.serviceId);
+  const selectedService = services.find((service) => service.id === form.serviceId);
   const selectedDoctor = doctors.find((doctor) => doctor.id === form.doctorId);
 
   useEffect(() => {
@@ -251,11 +253,14 @@ export default function BookingForm({ defaultServiceId = "" }: BookingFormProps)
           id="service"
           required
           value={form.serviceId}
+          disabled={servicesLoading || services.length === 0}
           onChange={(event) => setForm({ ...form, serviceId: event.target.value })}
-          className="dental-input"
+          className="dental-input disabled:opacity-60"
         >
-          <option value="">اختر الخدمة</option>
-          {dentalServices.map((service) => (
+          <option value="">
+            {servicesLoading ? "جاري تحميل الخدمات..." : services.length === 0 ? "لا توجد خدمات" : "اختر الخدمة"}
+          </option>
+          {services.map((service) => (
             <option key={service.id} value={service.id}>
               {service.name} — {service.price} ر.س
             </option>

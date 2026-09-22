@@ -1,4 +1,4 @@
-import { dentalServices, timeSlots } from "../data/services";
+import { timeSlots } from "../data/services";
 import type { CreateBookingInput, UpdateBookingInput } from "./types";
 
 const PHONE_PATTERN = /^05\d{8}$/;
@@ -49,9 +49,8 @@ export function validateBookingInput(
     return { ok: false, error: "اختر الطبيب." };
   }
 
-  const service = dentalServices.find((item) => item.id === serviceId);
-  if (!service) {
-    return { ok: false, error: "الخدمة المختارة غير موجودة." };
+  if (!serviceId) {
+    return { ok: false, error: "اختر الخدمة." };
   }
 
   if (!DATE_PATTERN.test(date)) {

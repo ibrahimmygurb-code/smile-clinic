@@ -40,6 +40,11 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/admin/services" className="hover:text-accent">
+                    إدارة الخدمات
+                  </Link>
+                </li>
+                <li>
                   <Link href="/admin/leaves" className="hover:text-accent">
                     إدارة الإجازات
                   </Link>
