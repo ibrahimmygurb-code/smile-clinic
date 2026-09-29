@@ -1,7 +1,7 @@
 "use client";
 
-import PageHeader from "@/components/PageHeader";
-import ServiceCard from "@/components/ServiceCard";
+import PageHeader from "@/components/layout/PageHeader";
+import ServiceCard from "@/components/services/ServiceCard";
 import { useServices } from "@/lib/useServices";
 
 export default function ServicesPage() {

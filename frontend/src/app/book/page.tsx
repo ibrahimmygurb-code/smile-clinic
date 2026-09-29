@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import BookGate from "@/components/BookGate";
-import PageHeader from "@/components/PageHeader";
+import BookGate from "@/components/auth/BookGate";
+import PageHeader from "@/components/layout/PageHeader";
 
 type BookPageProps = {
   searchParams: Promise<{

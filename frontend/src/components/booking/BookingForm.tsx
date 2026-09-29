@@ -5,8 +5,8 @@ import { apiUrl, authHeaders } from "@/lib/api";
 import { timeSlots } from "@/data/services";
 import type { Booking } from "@/lib/types";
 import { isDoctorOnLeave } from "@/lib/types";
-import DoctorChoiceList from "@/components/DoctorChoiceList";
-import { useAuth } from "@/components/AuthProvider";
+import DoctorChoiceList from "@/components/booking/DoctorChoiceList";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useDoctors } from "@/lib/useDoctors";
 import { useServices } from "@/lib/useServices";
 

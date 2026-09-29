@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Footer() {
   const { user } = useAuth();
@@ -64,7 +64,7 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link href="/appointments" className="hover:text-accent">
-                    مواعيدي
+                    المواعيد
                   </Link>
                 </li>
               </>

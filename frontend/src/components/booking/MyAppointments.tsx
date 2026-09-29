@@ -44,12 +44,15 @@ function AppointmentCard({ booking, variant }: AppointmentCardProps) {
           </h2>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
-            {status.text}
-          </span>
-          {isPast && (
-            <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">
-              انتهى
+          {isPast ? (
+            booking.status === "cancelled" ? (
+              <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">ملغى</span>
+            ) : (
+              <span className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600">انتهى</span>
+            )
+          ) : (
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
+              {status.text}
             </span>
           )}
         </div>
@@ -90,7 +93,7 @@ function AppointmentSection({
   variant,
 }: {
   title: string;
-  description: string;
+  description?: string;
   bookings: Booking[];
   variant: "upcoming" | "past";
 }) {
@@ -102,7 +105,7 @@ function AppointmentSection({
     <section className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-foreground">{title}</h2>
-        <p className="mt-1 text-sm text-muted">{description}</p>
+        {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {bookings.map((booking) => (
@@ -157,7 +160,6 @@ export default function MyAppointments() {
       ) : (
         <AppointmentSection
           title="المواعيد القادمة"
-          description="مواعيدك من اليوم فصاعداً — الأقرب أولاً."
           bookings={upcoming}
           variant="upcoming"
         />

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import AdminDoctors from "@/components/AdminDoctors";
-import AdminGate from "@/components/AdminGate";
-import PageHeader from "@/components/PageHeader";
+import AdminDoctors from "@/components/admin/AdminDoctors";
+import AdminGate from "@/components/admin/AdminGate";
+import PageHeader from "@/components/layout/PageHeader";
 import { useDoctors } from "@/lib/useDoctors";
 
 export default function AdminDoctorsPage() {

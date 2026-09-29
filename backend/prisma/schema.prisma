@@ -33,8 +33,9 @@ model Doctor {
   id        String   @id
   name      String
   specialty String
-  offDates  String[] @default([])
-  createdAt DateTime @default(now())
+  offDates     String[] @default([])
+  pastOffDates String[] @default([])
+  createdAt    DateTime @default(now())
 
   @@map("doctors")
 }

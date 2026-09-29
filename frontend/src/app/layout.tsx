@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Cairo } from "next/font/google";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import SiteBackground from "@/components/SiteBackground";
-import { AuthProvider } from "@/components/AuthProvider";
+import Header from "@/components/layout/Header";
+import MobileBackBar from "@/components/layout/MobileBackBar";
+import Footer from "@/components/layout/Footer";
+import SiteBackground from "@/components/layout/SiteBackground";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -28,7 +29,10 @@ export default function RootLayout({
         <SiteBackground />
         <AuthProvider>
           <Header />
-          <main className="mx-auto w-full max-w-6xl px-6 py-10 md:py-14">{children}</main>
+          <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:py-14">
+            <MobileBackBar />
+            {children}
+          </main>
           <Footer />
         </AuthProvider>
       </body>

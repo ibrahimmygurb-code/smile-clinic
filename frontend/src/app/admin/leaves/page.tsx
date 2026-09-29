@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import AdminGate from "@/components/AdminGate";
-import AdminLeaves from "@/components/AdminLeaves";
-import PageHeader from "@/components/PageHeader";
+import AdminGate from "@/components/admin/AdminGate";
+import AdminLeaves from "@/components/admin/AdminLeaves";
+import PageHeader from "@/components/layout/PageHeader";
 import { useDoctors } from "@/lib/useDoctors";
 
 export default function AdminLeavesPage() {
@@ -16,7 +16,7 @@ export default function AdminLeavesPage() {
         <PageHeader
           badge="الإجازات"
           title="إدارة الإجازات"
-          description="حدد أيام إجازة كل طبيب. في يوم الإجازة يظهر اسمه مظللاً ولا يمكن للمريض اختياره."
+          description="حدد أيام إجازة كل طبيب. «أيام الإجازة» لليوم والقادم. «الإجازات السابقة» تعرض مجموع كل أيام الإجازة المسجّلة مع تواريخها."
         />
         <AdminLeaves
           doctors={doctors}

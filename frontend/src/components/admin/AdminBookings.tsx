@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import AdminFormModal from "@/components/AdminFormModal";
+import AdminFormModal from "@/components/admin/AdminFormModal";
 import { apiUrl, authHeaders } from "@/lib/api";
+import {
+  bookingMonthKey,
+  filterBookingsForAdmin,
+  groupBookingsByMonth,
+} from "@/lib/admin-bookings-utils";
 import { arabicSearchMatchAny } from "@/lib/search-text";
-import DoctorChoiceList from "@/components/DoctorChoiceList";
+import DoctorChoiceList from "@/components/booking/DoctorChoiceList";
 import { timeSlots } from "@/data/services";
 import type { Booking, BookingStatus, Doctor, Service } from "@/lib/types";
 import { isDoctorOnLeave } from "@/lib/types";
@@ -53,6 +58,8 @@ export default function AdminBookings({
   const [serviceFilter, setServiceFilter] = useState("");
   const [doctorFilter, setDoctorFilter] = useState("");
   const [dateSort, setDateSort] = useState<DateSortOrder>("nearest");
+  const [openMonth, setOpenMonth] = useState("");
+  const [monthSearch, setMonthSearch] = useState({ month: "", query: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
@@ -132,6 +139,30 @@ export default function AdminBookings({
     return () => controller.abort();
   }, [editing, form.date, form.doctorId]);
 
+  const monthOptions = useMemo(() => groupBookingsByMonth(bookings), [bookings]);
+
+  const monthBookings = useMemo(() => {
+    if (!openMonth) {
+      return [];
+    }
+    return bookings
+      .filter((booking) => bookingMonthKey(booking.date) === openMonth)
+      .sort((a, b) => bookingSortKey(a).localeCompare(bookingSortKey(b)));
+  }, [bookings, openMonth]);
+
+  const visibleMonthBookings = useMemo(() => {
+    const query = (monthSearch.month === openMonth ? monthSearch.query : "").trim();
+    if (!query) {
+      return monthBookings;
+    }
+    return monthBookings.filter((booking) =>
+      arabicSearchMatchAny(
+        [booking.name, booking.phone, booking.doctorName, booking.serviceName],
+        query,
+      ),
+    );
+  }, [monthBookings, monthSearch, openMonth]);
+
   const stats = useMemo(() => {
     return {
       total: bookings.length,
@@ -167,25 +198,11 @@ export default function AdminBookings({
   }, [bookings, doctors]);
 
   const visibleBookings = useMemo(() => {
-    const query = searchQuery.trim();
-    let list = bookings;
-
-    if (serviceFilter) {
-      list = list.filter((booking) => booking.serviceId === serviceFilter);
-    }
-
-    if (doctorFilter) {
-      list = list.filter((booking) => booking.doctorId === doctorFilter);
-    }
-
-    if (query) {
-      list = list.filter((booking) =>
-        arabicSearchMatchAny(
-          [booking.name, booking.phone, booking.doctorName, booking.serviceName],
-          query,
-        ),
-      );
-    }
+    const list = filterBookingsForAdmin(bookings, {
+      serviceId: serviceFilter || undefined,
+      doctorId: doctorFilter || undefined,
+      query: searchQuery,
+    });
 
     return [...list].sort((a, b) => {
       const cmp = bookingSortKey(a).localeCompare(bookingSortKey(b));
@@ -276,8 +293,37 @@ export default function AdminBookings({
     return <p className="text-muted">جاري تحميل المواعيد...</p>;
   }
 
+  const selectedMonth = monthOptions.find((month) => month.key === openMonth) ?? null;
+
   return (
     <div className="space-y-6">
+      {monthOptions.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground">الأشهر</h3>
+          <div className="flex flex-wrap gap-3">
+            {monthOptions.map((month) => {
+              const selected = openMonth === month.key;
+              return (
+                <button
+                  key={month.key}
+                  type="button"
+                  onClick={() => setOpenMonth(month.key)}
+                  className={`dental-card min-w-[8.5rem] px-4 py-3 text-right transition ${
+                    selected ? "ring-2 ring-accent" : "hover:-translate-y-0.5 hover:shadow-md"
+                  }`}
+                >
+                  <p className="text-sm font-bold text-foreground">{month.label}</p>
+                  <p className="mt-1 text-lg font-bold text-accent">{month.total}</p>
+                  <p className="text-xs text-muted">
+                    {month.total === 1 ? "حجز" : month.total === 2 ? "حجزان" : "حجوزات"}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="dental-card p-5">
           <p className="text-sm text-muted">كل الحجوزات</p>
@@ -336,15 +382,96 @@ export default function AdminBookings({
         </div>
       )}
 
-      {error && !editing && (
+      {error && !editing && !openMonth && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
       <AdminFormModal
+        open={Boolean(selectedMonth)}
+        half
+        dim
+        titleId="month-bookings-title"
+        title={`حجوزات ${selectedMonth?.label ?? ""}`}
+        description={`${monthBookings.length} ${monthBookings.length === 1 ? "حجز" : monthBookings.length === 2 ? "حجزان" : "حجوزات"} في هذا الشهر`}
+        onClose={() => {
+          if (!editing) {
+            setOpenMonth("");
+          }
+        }}
+      >
+        {monthBookings.length === 0 ? (
+          <p className="text-sm text-muted">لا توجد حجوزات في هذا الشهر.</p>
+        ) : (
+          <div>
+            <input
+              type="search"
+              value={monthSearch.month === openMonth ? monthSearch.query : ""}
+              onChange={(event) => setMonthSearch({ month: openMonth, query: event.target.value })}
+              placeholder="بحث: اسم، جوال، طبيب..."
+              className="dental-input sticky top-0 z-10 mb-2 h-9 bg-white py-1.5 text-sm"
+              aria-label="بحث في حجوزات الشهر"
+            />
+            {visibleMonthBookings.length === 0 ? (
+              <p className="text-sm text-muted">لا توجد نتائج مطابقة.</p>
+            ) : (
+          <ul className="space-y-2">
+            {visibleMonthBookings.map((booking) => (
+              <li
+                key={booking.id}
+                className="rounded-xl border border-border bg-white px-3 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-foreground">{booking.name}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {booking.date} · {booking.time} · {booking.doctorName} · {booking.serviceName}
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      booking.status === "confirmed"
+                        ? "shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success"
+                        : booking.status === "deleted"
+                          ? "shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600"
+                          : "shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600"
+                    }
+                  >
+                    {booking.status === "confirmed"
+                      ? "مؤكد"
+                      : booking.status === "deleted"
+                        ? "محذوف"
+                        : "ملغى"}
+                  </span>
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={() => startEdit(booking)} className="dental-btn-edit">
+                    تعديل
+                  </button>
+                  {booking.status !== "deleted" && (
+                    <button
+                      type="button"
+                      disabled={busyId === booking.id}
+                      onClick={() => removeBooking(booking.id)}
+                      className="rounded-lg border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {busyId === booking.id ? "..." : "حذف"}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+            )}
+          </div>
+        )}
+      </AdminFormModal>
+
+      <AdminFormModal
         open={Boolean(editing)}
         wide
+        elevated
         title="تعديل الحجز"
         description="عدّل بيانات الموعد ثم احفظ."
         onClose={closeForm}

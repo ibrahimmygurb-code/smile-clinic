@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import ServiceCard from "@/components/ServiceCard";
-import UpcomingAppointmentCard from "@/components/UpcomingAppointmentCard";
+import ServiceCard from "@/components/services/ServiceCard";
+import UpcomingAppointmentCard from "@/components/booking/UpcomingAppointmentCard";
 import { clinicStats, whyUs } from "@/data/services";
 import { useServices } from "@/lib/useServices";
 

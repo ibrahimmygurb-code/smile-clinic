@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import AdminFormModal from "@/components/AdminFormModal";
-import ServiceIconPicker from "@/components/ServiceIconPicker";
+import AdminFormModal from "@/components/admin/AdminFormModal";
+import ServiceIconPicker from "@/components/services/ServiceIconPicker";
 import { apiUrl, authHeaders } from "@/lib/api";
 import { DEFAULT_SERVICE_ICON, ServiceIcon } from "@/lib/service-icons";
 import type { Service } from "@/lib/types";

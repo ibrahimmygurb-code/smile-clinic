@@ -53,21 +53,30 @@ export function useMyBookings(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) {
-      setBookings([]);
-      setLoading(false);
-      setError("");
       return;
     }
 
     const controller = new AbortController();
-    setLoading(true);
 
-    fetch(apiUrl("/api/my-bookings"), {
-      headers: { ...authHeaders() },
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const data = (await response.json()) as { bookings?: Booking[]; error?: string };
+    Promise.resolve()
+      .then(() => {
+        if (controller.signal.aborted) {
+          return undefined;
+        }
+        setLoading(true);
+        return fetch(apiUrl("/api/my-bookings"), {
+          headers: { ...authHeaders() },
+          signal: controller.signal,
+        });
+      })
+      .then((response) =>
+        response?.json().then((data: { bookings?: Booking[]; error?: string }) => ({ response, data })),
+      )
+      .then((result) => {
+        if (!result || controller.signal.aborted) {
+          return;
+        }
+        const { response, data } = result;
         if (!response.ok) {
           setError(data.error ?? "تعذر تحميل المواعيد.");
           setBookings([]);
@@ -77,16 +86,29 @@ export function useMyBookings(enabled: boolean) {
         setBookings(data.bookings ?? []);
       })
       .catch((fetchError: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
           return;
         }
         setError("تعذر الاتصال بالخادم.");
         setBookings([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
 
     return () => controller.abort();
   }, [enabled]);
 
-  return { bookings, loading, error, nextUpcoming: pickNextUpcomingBooking(bookings) };
+  const visibleBookings = enabled ? bookings : [];
+  return {
+    bookings: visibleBookings,
+    loading: enabled && loading,
+    error: enabled ? error : "",
+    nextUpcoming: pickNextUpcomingBooking(visibleBookings),
+  };
 }

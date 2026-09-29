@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import AdminFormModal from "@/components/AdminFormModal";
+import AdminFormModal from "@/components/admin/AdminFormModal";
 import { apiUrl, authHeaders } from "@/lib/api";
 import { arabicSearchMatchAny } from "@/lib/search-text";
 import type { Doctor } from "@/lib/types";

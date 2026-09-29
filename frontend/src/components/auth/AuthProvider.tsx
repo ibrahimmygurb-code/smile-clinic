@@ -47,6 +47,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    function syncFromStorage() {
+      const stored = window.localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!stored) {
+        setToken(null);
+        setUser(null);
+      }
+    }
+
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        syncFromStorage();
+      }
+    }
+
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", syncFromStorage);
+    window.addEventListener("storage", syncFromStorage);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", syncFromStorage);
+      window.removeEventListener("storage", syncFromStorage);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     const stored = window.localStorage.getItem(AUTH_TOKEN_KEY);
 

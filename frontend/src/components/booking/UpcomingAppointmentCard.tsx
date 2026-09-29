@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { formatAppointmentWhen, useMyBookings } from "@/lib/useMyBookings";
 
 export default function UpcomingAppointmentCard() {
@@ -42,7 +42,7 @@ export default function UpcomingAppointmentCard() {
           <p className="mt-1 text-sm text-muted">مع {nextUpcoming.doctorName}</p>
           <p className="mt-2 text-sm font-semibold text-accent">{formatAppointmentWhen(nextUpcoming)}</p>
           <Link href="/appointments" className="mt-3 inline-block text-xs font-semibold text-accent hover:underline">
-            عرض كل مواعيدي
+            عرض كل المواعيد
           </Link>
         </>
       )}

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import MyAppointments from "@/components/MyAppointments";
+import { useAuth } from "@/components/auth/AuthProvider";
+import MyAppointments from "@/components/booking/MyAppointments";
 
 export default function AppointmentsGate() {
   const { user, loading } = useAuth();

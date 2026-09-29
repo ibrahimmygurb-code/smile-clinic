@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import { apiUrl, authHeaders } from "@/lib/api";
+import {
+  allRegisteredLeaveDates,
+  currentLeaveDates,
+  formatLeaveDayMonth,
+  formatLeaveDayMonths,
+  formatPastLeaveDuration,
+  todayInRiyadh,
+} from "@/lib/leave-dates";
 import type { Doctor } from "@/lib/types";
 
 type AdminLeavesProps = {
@@ -13,17 +21,28 @@ type AdminLeavesProps = {
 
 export default function AdminLeaves({ doctors, loading, error, onChanged }: AdminLeavesProps) {
   const [selectedId, setSelectedId] = useState("");
-  const [offDates, setOffDates] = useState<string[]>([]);
+  const [offDatesDraft, setOffDatesDraft] = useState<{ doctorId: string; dates: string[] } | null>(null);
   const [dateInput, setDateInput] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const selectedDoctor = doctors.find((doctor) => doctor.id === selectedId) ?? null;
 
+  const offDates = offDatesDraft?.doctorId === selectedId
+    ? offDatesDraft.dates
+    : selectedDoctor
+      ? currentLeaveDates(selectedDoctor.offDates)
+      : [];
+
+  function updateOffDates(dates: string[]) {
+    if (selectedId) {
+      setOffDatesDraft({ doctorId: selectedId, dates });
+    }
+  }
+
   function selectDoctor(id: string) {
-    const doctor = doctors.find((item) => item.id === id);
     setSelectedId(id);
-    setOffDates(doctor ? [...doctor.offDates] : []);
+    setOffDatesDraft(null);
     setDateInput("");
     setFormError("");
   }
@@ -33,7 +52,13 @@ export default function AdminLeaves({ doctors, loading, error, onChanged }: Admi
       setDateInput("");
       return;
     }
-    setOffDates([...offDates, dateInput].sort());
+    if (dateInput < todayInRiyadh()) {
+      setFormError("لا يمكن إضافة يوم إجازة سابق. الأيام المنتهية تنتقل إلى الإجازات السابقة تلقائياً.");
+      setDateInput("");
+      return;
+    }
+    setFormError("");
+    updateOffDates([...offDates, dateInput].sort());
     setDateInput("");
   }
 
@@ -64,6 +89,7 @@ export default function AdminLeaves({ doctors, loading, error, onChanged }: Admi
         setFormError(data.error ?? "تعذر حفظ أيام الإجازة.");
         return;
       }
+      setOffDatesDraft(null);
       onChanged();
     } catch {
       setFormError("تعذر الاتصال بالخادم.");
@@ -112,6 +138,7 @@ export default function AdminLeaves({ doctors, loading, error, onChanged }: Admi
               id="leave-date"
               type="date"
               value={dateInput}
+              min={todayInRiyadh()}
               disabled={!selectedDoctor}
               onChange={(event) => setDateInput(event.target.value)}
               className="dental-input max-w-[220px] disabled:opacity-60"
@@ -138,12 +165,12 @@ export default function AdminLeaves({ doctors, loading, error, onChanged }: Admi
                   key={date}
                   className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700"
                 >
-                  {date}
+                  {formatLeaveDayMonth(date)}
                   <button
                     type="button"
-                    onClick={() => setOffDates(offDates.filter((item) => item !== date))}
+                    onClick={() => updateOffDates(offDates.filter((item) => item !== date))}
                     className="text-red-600"
-                    aria-label={`حذف إجازة ${date}`}
+                    aria-label={`حذف إجازة ${formatLeaveDayMonth(date)}`}
                   >
                     ×
                   </button>
@@ -167,22 +194,45 @@ export default function AdminLeaves({ doctors, loading, error, onChanged }: Admi
       </form>
 
       <div className="overflow-x-auto dental-card">
-        <table className="w-full min-w-[520px] text-right text-sm">
+        <table className="w-full min-w-[720px] text-right text-sm">
           <thead className="border-b border-border bg-accent-soft/40 text-foreground">
             <tr>
               <th className="px-4 py-3 font-semibold">الطبيب</th>
               <th className="px-4 py-3 font-semibold">أيام الإجازة</th>
+              <th className="px-4 py-3 font-semibold">الإجازات السابقة</th>
             </tr>
           </thead>
           <tbody>
-            {doctors.map((doctor) => (
+            {doctors.map((doctor) => {
+              const upcoming = currentLeaveDates(doctor.offDates);
+              const allDates = allRegisteredLeaveDates(doctor);
+              const totalDays = allDates.length;
+              return (
               <tr key={doctor.id} className="border-b border-border last:border-b-0">
                 <td className="px-4 py-3 font-medium text-foreground">{doctor.name}</td>
-                <td className="px-4 py-3 text-muted">
-                  {doctor.offDates.length === 0 ? "لا توجد" : doctor.offDates.join("، ")}
+                <td className="px-4 py-3">
+                  {upcoming.length === 0 ? (
+                    <span className="text-muted">لا توجد</span>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">{formatPastLeaveDuration(upcoming.length)}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted">{formatLeaveDayMonths(upcoming)}</p>
+                    </>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {totalDays === 0 ? (
+                    <span className="text-muted">لا توجد</span>
+                  ) : (
+                    <>
+                      <p className="font-semibold text-foreground">{formatPastLeaveDuration(totalDays)}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted">{formatLeaveDayMonths(allDates)}</p>
+                    </>
+                  )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

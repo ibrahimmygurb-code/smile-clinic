@@ -192,6 +192,15 @@ body {
   padding: 1.25rem;
 }
 
+.admin-modal--dim .admin-modal__backdrop {
+  background: rgba(8, 18, 32, 0.72);
+  backdrop-filter: blur(7px);
+}
+
+.admin-modal--elevated {
+  z-index: 90;
+}
+
 .admin-modal__backdrop {
   position: absolute;
   inset: 0;
@@ -213,6 +222,22 @@ body {
 
 .admin-modal__panel--wide {
   width: min(100%, 48rem);
+}
+
+.admin-modal__panel--half {
+  width: min(100%, 40rem);
+  height: min(48vh, 420px);
+  max-height: 48vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(8, 18, 32, 0.28);
+}
+
+.admin-modal__panel--half > :last-child {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
 }
 
 @keyframes admin-modal-in {

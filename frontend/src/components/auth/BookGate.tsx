@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import BookingForm from "@/components/BookingForm";
+import { useAuth } from "@/components/auth/AuthProvider";
+import BookingForm from "@/components/booking/BookingForm";
 
 type BookGateProps = {
   defaultServiceId?: string;

@@ -5,6 +5,7 @@ export type Doctor = {
   name: string;
   specialty: string;
   offDates: string[];
+  pastOffDates?: string[];
 };
 
 export function isDoctorOnLeave(doctor: Doctor, date: string) {

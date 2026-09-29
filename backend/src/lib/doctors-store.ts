@@ -1,14 +1,14 @@
 import { randomUUID } from "crypto";
 import { defaultDoctors } from "../data/doctors";
+import { isValidLeaveDate, splitLeaveDates } from "./leave-dates";
 import { prisma } from "./prisma";
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export type Doctor = {
   id: string;
   name: string;
   specialty: string;
   offDates: string[];
+  pastOffDates: string[];
 };
 
 export type DoctorInput = {
@@ -22,13 +22,37 @@ function toDoctor(row: {
   name: string;
   specialty: string;
   offDates: string[];
+  pastOffDates: string[];
 }): Doctor {
   return {
     id: row.id,
     name: row.name,
     specialty: row.specialty,
     offDates: [...row.offDates].sort(),
+    pastOffDates: [...row.pastOffDates].sort(),
   };
+}
+
+async function persistArchivedLeaves(row: {
+  id: string;
+  name: string;
+  specialty: string;
+  offDates: string[];
+  pastOffDates: string[];
+}) {
+  const archived = splitLeaveDates(row.offDates, row.pastOffDates);
+  if (!archived.changed) {
+    return toDoctor(row);
+  }
+
+  const updated = await prisma.doctor.update({
+    where: { id: row.id },
+    data: {
+      offDates: archived.current,
+      pastOffDates: archived.past,
+    },
+  });
+  return toDoctor(updated);
 }
 
 export function isDoctorOnLeave(doctor: Doctor, date: string) {
@@ -49,12 +73,12 @@ export async function listDoctors() {
   const doctors = await prisma.doctor.findMany({
     orderBy: [{ name: "asc" }],
   });
-  return doctors.map(toDoctor);
+  return Promise.all(doctors.map((doctor) => persistArchivedLeaves(doctor)));
 }
 
 export async function getDoctorById(id: string) {
   const doctor = await prisma.doctor.findUnique({ where: { id } });
-  return doctor ? toDoctor(doctor) : null;
+  return doctor ? persistArchivedLeaves(doctor) : null;
 }
 
 export function validateDoctorInput(body: unknown) {
@@ -68,7 +92,7 @@ export function validateDoctorInput(body: unknown) {
   const rawOffDates = Array.isArray(input.offDates) ? input.offDates : [];
   const offDates = [
     ...new Set(
-      rawOffDates.filter((value): value is string => typeof value === "string" && DATE_PATTERN.test(value)),
+      rawOffDates.filter((value): value is string => typeof value === "string" && isValidLeaveDate(value)),
     ),
   ].sort();
 
@@ -88,12 +112,14 @@ export function validateDoctorInput(body: unknown) {
 }
 
 export async function createDoctor(input: DoctorInput) {
+  const archived = splitLeaveDates(input.offDates, []);
   const doctor = await prisma.doctor.create({
     data: {
       id: randomUUID(),
       name: input.name,
       specialty: input.specialty,
-      offDates: input.offDates,
+      offDates: archived.current,
+      pastOffDates: archived.past,
     },
   });
 
@@ -106,12 +132,14 @@ export async function updateDoctor(id: string, input: DoctorInput) {
     return { ok: false as const, error: "الطبيب غير موجود." };
   }
 
+  const archived = splitLeaveDates(input.offDates, existing.pastOffDates);
   const doctor = await prisma.doctor.update({
     where: { id },
     data: {
       name: input.name,
       specialty: input.specialty,
-      offDates: input.offDates,
+      offDates: archived.current,
+      pastOffDates: archived.past,
     },
   });
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import AdminGate from "@/components/AdminGate";
-import AdminServices from "@/components/AdminServices";
-import PageHeader from "@/components/PageHeader";
+import AdminGate from "@/components/admin/AdminGate";
+import AdminServices from "@/components/admin/AdminServices";
+import PageHeader from "@/components/layout/PageHeader";
 import { useServices } from "@/lib/useServices";
 
 export default function AdminServicesPage() {
