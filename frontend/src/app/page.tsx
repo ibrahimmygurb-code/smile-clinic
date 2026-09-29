@@ -5,9 +5,11 @@ import ServiceCard from "@/components/services/ServiceCard";
 import UpcomingAppointmentCard from "@/components/booking/UpcomingAppointmentCard";
 import { clinicStats, whyUs } from "@/data/services";
 import { useServices } from "@/lib/useServices";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Home() {
   const { services, loading } = useServices();
+  const { user } = useAuth();
   const featuredServices = services.slice(0, 3);
 
   return (
@@ -27,9 +29,11 @@ export default function Home() {
               احجز موعدك خلال دقائق.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/book" className="dental-btn-primary">
-                احجز موعد الآن
-              </Link>
+              {user && (
+                <Link href="/book" className="dental-btn-primary">
+                  احجز موعد الآن
+                </Link>
+              )}
               <Link href="/services" className="dental-btn-secondary">
                 استعرض الخدمات
               </Link>
@@ -107,9 +111,11 @@ export default function Home() {
           <p className="mt-3 leading-8 text-muted">
             احجز الآن وسيتواصل معك فريق العيادة لتأكيد الموعد.
           </p>
-          <Link href="/book" className="dental-btn-primary mt-5">
-            احجز موعدك
-          </Link>
+          {user && (
+            <Link href="/book" className="dental-btn-primary mt-5">
+              احجز موعدك
+            </Link>
+          )}
         </div>
         <div className="rounded-2xl border border-border bg-white/80 p-5">
           <h3 className="font-bold text-foreground">ساعات العمل</h3>

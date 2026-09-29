@@ -24,11 +24,13 @@ export default function Footer() {
           <ul className="mt-3 space-y-2 text-sm text-muted">
             {isAdmin ? (
               <>
-                <li>
-                  <Link href="/book" className="hover:text-accent">
-                    حجز موعد
-                  </Link>
-                </li>
+                {user && (
+                  <li>
+                    <Link href="/book" className="hover:text-accent">
+                      حجز موعد
+                    </Link>
+                  </li>
+                )}
                 <li>
                   <Link href="/admin" className="hover:text-accent">
                     لوحة الإدارة
@@ -62,11 +64,13 @@ export default function Footer() {
                     حجز موعد
                   </Link>
                 </li>
-                <li>
-                  <Link href="/appointments" className="hover:text-accent">
-                    المواعيد
-                  </Link>
-                </li>
+                {user && (
+                  <li>
+                    <Link href="/appointments" className="hover:text-accent">
+                      المواعيد
+                    </Link>
+                  </li>
+                )}
               </>
             )}
           </ul>

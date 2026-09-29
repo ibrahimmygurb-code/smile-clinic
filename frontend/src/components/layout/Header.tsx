@@ -10,6 +10,9 @@ export default function Header() {
   const { user, loading, logout } = useAuth();
   const isAdmin = user?.role === "admin";
   const navLinks = isAdmin ? adminNavLinks : publicNavLinks;
+  const visibleNavLinks = user
+    ? navLinks
+    : navLinks.filter((link) => link.href !== "/book" && link.href !== "/appointments");
   const pathname = usePathname();
   const [menuState, setMenuState] = useState({ pathname, open: false });
   const menuOpen = menuState.pathname === pathname && menuState.open;
@@ -71,7 +74,7 @@ export default function Header() {
         </div>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link) => (
+          {visibleNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -118,7 +121,7 @@ export default function Header() {
             className="relative z-50 border-t border-border bg-white/95 px-4 py-3 shadow-lg md:hidden"
           >
             <ul className="space-y-1">
-              {navLinks.map((link) => {
+              {visibleNavLinks.map((link) => {
                 const active = pathname === link.href;
                 return (
                   <li key={link.href}>
